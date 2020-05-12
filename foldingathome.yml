@@ -143,7 +143,7 @@ Resources:
             mkdir /var/lib/fahclient
             chown ubuntu:ubuntu /var/lib/fahclient
             # Download Folding@home client in background
-            wget https://download.foldingathome.org/releases/public/release/fahclient/debian-stable-64bit/v7.6/fahclient_7.6.9_amd64.deb&
+            wget https://download.foldingathome.org/releases/public/release/fahclient/debian-stable-64bit/v7.6/fahclient_7.6.13_amd64.deb&
             # Install NVidia CUDA drivers and Python
             wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
             mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
@@ -155,7 +155,7 @@ Resources:
             # Optimize GPU settings
             nvidia-smi -ac 5001,1590
             # Install Folding@home
-            dpkg-deb -x fahclient_7.6.9_amd64.deb /
+            dpkg-deb -x fahclient_7.6.13_amd64.deb /
             mkdir /etc/fahclient
             cat<<END >/etc/fahclient/config.xml
             <config>
