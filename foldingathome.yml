@@ -95,6 +95,7 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
+      AutoScalingGroupName: MyFoldingASG
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
@@ -109,7 +110,7 @@ Resources:
       LifecycleHookSpecificationList:
         - LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING"
           DefaultResult: ABANDON
-          HeartbeatTimeout: 600
+          HeartbeatTimeout: 1200
           LifecycleHookName: "InitialConfigurationHook"
 
 
@@ -141,17 +142,6 @@ Resources:
           Fn::Base64: !Sub |
             #!/bin/bash -ex
             exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-            # error handling
-            function my_trap()
-            {
-              echo "Sorry, there was an error at line $1 $2" 
-              TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"` 
-              aws autoscaling complete-lifecycle-action --lifecycle-action-result ABANDON --lifecycle-hook-name "InitialConfigurationHook" --auto-scaling-group-name !Ref AutoScalingGroup  \
-              --instance-id $(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/instance-id) --region ${AWS::Region}
-              shutdown -h +60
-            }
-            trap 'my_trap $${LINENO} $$? ' ERR
-            # /error handling
             # Use instance store for Folding@home
             mkdir /var/lib/fahclient
             chown ubuntu:ubuntu /var/lib/fahclient
@@ -214,7 +204,7 @@ Resources:
 
             # send success signal
             TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"` 
-            aws autoscaling complete-lifecycle-action --lifecycle-action-result CONTINUE --lifecycle-hook-name "InitialConfigurationHook" --auto-scaling-group-name !Ref AutoScalingGroup  \
+            aws autoscaling complete-lifecycle-action --lifecycle-action-result CONTINUE --lifecycle-hook-name "InitialConfigurationHook" --auto-scaling-group-name MyFoldingASG  \
             --instance-id $(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/instance-id) --region ${AWS::Region}
 
   SecurityGroup:
@@ -273,7 +263,9 @@ Resources:
            Version: '2012-10-17'
            Statement:
               - Effect: 'Allow'
-                Action: 'autoscaling:SetInstanceHealth'
+                Action: 
+                  - 'autoscaling:SetInstanceHealth'
+                  - 'autoscaling:CompleteLifecycleAction'
                 Resource: !Sub 'arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*'
                 Condition:
                   StringEquals:
